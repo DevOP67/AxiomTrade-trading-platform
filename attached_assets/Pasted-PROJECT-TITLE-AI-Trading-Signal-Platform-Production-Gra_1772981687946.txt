@@ -1,0 +1,257 @@
+PROJECT TITLE
+AI Trading Signal Platform (Production-Grade Fintech Microservices System)
+
+OBJECTIVE
+Build a professional fintech trading signal platform that generates automated buy/sell signals from market data and displays them in a modern trading dashboard similar to TradingView or Binance.
+
+The system must use a scalable microservices architecture with a NestJS API gateway and a Go-based signal engine.
+
+The project should be production-ready with Docker containerization, Kubernetes scaling, CI/CD automation, and a clean GitHub-ready structure.
+
+GENERAL REQUIREMENTS
+
+• Write clean, modular, production-level code
+• Follow industry best practices
+• Use microservices architecture
+• Automatically run tests after code generation
+• Detect compilation/runtime errors
+• Fix bugs automatically and rebuild until successful
+• Ensure the application runs successfully before finishing
+• Generate documentation and architecture diagrams
+• Make the repository exportable to GitHub
+
+SYSTEM ARCHITECTURE
+
+Frontend
+Framework: Next.js + TypeScript
+Styling: TailwindCSS
+
+UI Design
+Professional fintech trading dashboard inspired by:
+
+TradingView
+Binance
+Bloomberg Terminal style
+
+UI Features
+
+• Dark mode fintech dashboard
+• Real-time candlestick charts
+• Trading signal feed
+• Portfolio management panel
+• Strategy control panel
+• Market overview widgets
+• Analytics dashboard
+• Notifications panel
+• WebSocket real-time updates
+
+Charts should use a professional charting library.
+
+BACKEND API GATEWAY
+
+Framework: NestJS
+
+Responsibilities
+
+• JWT authentication
+• REST APIs
+• WebSocket streaming
+• API gateway routing
+• user management
+• signal retrieval
+• strategy configuration
+• portfolio management
+• market data endpoints
+
+SIGNAL ENGINE MICROSERVICE
+
+Language: Go
+
+Responsibilities
+
+• market data ingestion
+• strategy execution
+• signal generation
+• pushing signals to Redis queue
+• publishing signals via WebSocket
+
+DATABASE
+
+PostgreSQL
+
+Tables
+
+users
+signals
+strategies
+market_data
+portfolios
+backtests
+
+CACHE AND QUEUE
+
+Redis
+
+Uses
+
+• job queues
+• streaming signals
+• caching market data
+• async processing
+
+MARKET DATA SOURCE
+
+Integrate Binance public API.
+
+Fetch real-time and historical data for:
+
+BTCUSDT
+ETHUSDT
+Top cryptocurrency pairs
+
+TRADING STRATEGIES
+
+Implement the following strategies:
+
+1 Moving Average Crossover
+2 RSI Strategy
+3 MACD Strategy
+
+Signals should output
+
+BUY
+SELL
+HOLD
+
+Each strategy must support configurable parameters
+
+timeframe
+sensitivity
+risk threshold
+
+BACKTESTING ENGINE
+
+Create a module that runs trading strategies on historical data.
+
+Metrics should include:
+
+profit
+win rate
+drawdown
+Sharpe ratio
+risk/reward ratio
+
+REAL TIME FEATURES
+
+• WebSocket streaming for signals
+• real-time price updates
+• dashboard auto-refresh
+• notification alerts for signals
+
+AI SIGNAL SCORING MODULE
+
+Create a scoring system that ranks signals based on:
+
+trend strength
+volatility
+agreement between strategies
+recent market momentum
+
+DEVOPS AND INFRASTRUCTURE
+
+Containerization
+
+Use Docker.
+
+Create Dockerfiles for:
+
+nestjs-api
+go-signal-engine
+frontend
+
+Create docker-compose services for
+
+nestjs-api
+go-engine
+postgres
+redis
+frontend
+
+SCALING
+
+Prepare Kubernetes configuration files.
+
+Create:
+
+Deployments
+Services
+Horizontal Pod Autoscaler
+
+Allow scaling of the Go signal engine.
+
+CI/CD PIPELINE
+
+Use GitHub Actions.
+
+Pipeline steps
+
+install dependencies
+lint code
+run unit tests
+build services
+build Docker images
+push images
+deploy containers
+
+TESTING
+
+Add:
+
+unit tests
+API integration tests
+strategy validation tests
+
+ERROR HANDLING
+
+If the code fails to compile or run
+
+identify the error
+fix automatically
+rebuild project
+run tests again
+
+PROJECT STRUCTURE
+
+trading-platform
+
+/api        (nestjs gateway)
+/engine     (go signal engine)
+/frontend   (nextjs dashboard)
+/docker
+/kubernetes
+/scripts
+/docker-compose.yml
+
+DOCUMENTATION
+
+Generate README including
+
+system architecture diagram
+setup instructions
+API documentation
+database schema
+trading strategy explanation
+deployment instructions
+
+FINAL OUTPUT REQUIREMENTS
+
+After generation:
+
+• run the application
+• confirm API works
+• confirm Go signal engine runs
+• confirm dashboard loads
+• confirm WebSocket updates work
+• confirm signals are generated
+
+Ensure the project can be exported to GitHub and cloned locally.
