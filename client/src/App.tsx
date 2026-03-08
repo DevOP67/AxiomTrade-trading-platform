@@ -5,7 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
-import Placeholder from "@/pages/Placeholder";
+import Markets from "@/pages/Markets";
+import Signals from "@/pages/Signals";
+import Strategies from "@/pages/Strategies";
+import Portfolio from "@/pages/Portfolio";
+import Settings from "@/pages/Settings";
 import { Sidebar } from "@/components/Sidebar";
 
 function Router() {
@@ -14,21 +18,11 @@ function Router() {
       <Sidebar />
       <Switch>
         <Route path="/" component={Dashboard} />
-        <Route path="/markets">
-          <Placeholder title="Markets Explorer" />
-        </Route>
-        <Route path="/signals">
-          <Placeholder title="Advanced Signals" />
-        </Route>
-        <Route path="/strategies">
-          <Placeholder title="Strategy Builder" />
-        </Route>
-        <Route path="/portfolio">
-          <Placeholder title="Deep Portfolio Analytics" />
-        </Route>
-        <Route path="/settings">
-          <Placeholder title="Terminal Settings" />
-        </Route>
+        <Route path="/markets" component={Markets} />
+        <Route path="/signals" component={Signals} />
+        <Route path="/strategies" component={Strategies} />
+        <Route path="/portfolio" component={Portfolio} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </div>
