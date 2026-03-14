@@ -6,7 +6,6 @@
 
 @layer base {
   :root {
-    /* Hardcoded to Dark Mode for the Pro Trading Terminal aesthetic */
     --background: 222 47% 5%;
     --foreground: 210 40% 98%;
 
@@ -37,7 +36,6 @@
 
     --radius: 0.5rem;
 
-    /* Custom Trading Colors */
     --success: 142 71% 45%;
     --success-foreground: 144 100% 98%;
     
@@ -59,55 +57,55 @@
 }
 
 @layer utilities {
-  .text-success {
-    color: hsl(var(--success));
-  }
-  .bg-success {
-    background-color: hsl(var(--success));
-  }
-  .bg-success\/10 {
-    background-color: hsl(var(--success) / 0.1);
-  }
-  .text-danger {
-    color: hsl(var(--destructive));
-  }
-  .bg-danger {
-    background-color: hsl(var(--destructive));
-  }
-  .bg-danger\/10 {
-    background-color: hsl(var(--destructive) / 0.1);
-  }
-  
-  /* Scrollbar hiding for clean terminal look */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  /* Success */
+  .text-success { color: hsl(var(--success)); }
+  .bg-success { background-color: hsl(var(--success)); }
+  .bg-success\/5 { background-color: hsl(var(--success) / 0.05); }
+  .bg-success\/10 { background-color: hsl(var(--success) / 0.1); }
+  .bg-success\/20 { background-color: hsl(var(--success) / 0.2); }
+  .border-success { border-color: hsl(var(--success)); }
+  .border-success\/20 { border-color: hsl(var(--success) / 0.2); }
+  .border-success\/30 { border-color: hsl(var(--success) / 0.3); }
 
-  /* Glassmorphism utility for floating panels */
+  /* Danger (maps to --destructive) */
+  .text-danger { color: hsl(var(--destructive)); }
+  .bg-danger { background-color: hsl(var(--destructive)); }
+  .bg-danger\/5 { background-color: hsl(var(--destructive) / 0.05); }
+  .bg-danger\/10 { background-color: hsl(var(--destructive) / 0.1); }
+  .bg-danger\/20 { background-color: hsl(var(--destructive) / 0.2); }
+  .border-danger { border-color: hsl(var(--destructive)); }
+  .border-danger\/20 { border-color: hsl(var(--destructive) / 0.2); }
+  .border-danger\/30 { border-color: hsl(var(--destructive) / 0.3); }
+
+  /* Warning */
+  .text-warning { color: hsl(var(--warning)); }
+  .bg-warning { background-color: hsl(var(--warning)); }
+  .bg-warning\/5 { background-color: hsl(var(--warning) / 0.05); }
+  .bg-warning\/10 { background-color: hsl(var(--warning) / 0.1); }
+  .bg-warning\/20 { background-color: hsl(var(--warning) / 0.2); }
+  .border-warning { border-color: hsl(var(--warning)); }
+  .border-warning\/20 { border-color: hsl(var(--warning) / 0.2); }
+  .border-warning\/30 { border-color: hsl(var(--warning) / 0.3); }
+
+  /* Scrollbar hiding */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Glass panel */
   .glass-panel {
     @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-2xl;
   }
 }
 
-/* Custom animations for signal flashes */
 @keyframes flash-green {
-  0% { background-color: hsl(var(--success) / 0.2); }
+  0%   { background-color: hsl(var(--success) / 0.2); }
   100% { background-color: transparent; }
 }
 
 @keyframes flash-red {
-  0% { background-color: hsl(var(--destructive) / 0.2); }
+  0%   { background-color: hsl(var(--destructive) / 0.2); }
   100% { background-color: transparent; }
 }
 
-.animate-flash-buy {
-  animation: flash-green 1s ease-out;
-}
-
-.animate-flash-sell {
-  animation: flash-red 1s ease-out;
-}
+.animate-flash-buy  { animation: flash-green 1s ease-out; }
+.animate-flash-sell { animation: flash-red   1s ease-out; }
