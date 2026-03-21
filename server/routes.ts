@@ -5,6 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { db } from "./db";
 import { strategies, signals, positions, insertStrategySchema } from "@shared/schema";
+import { generateExplanation } from "./signal-intelligence";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // ── Strategies ──────────────────────────────────────────────────────────────
@@ -54,7 +55,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const input = api.signals.list.input?.parse(req.query) || {};
       const results = await storage.getSignals(input.symbol, input.limit);
-      res.json(results);
+      const enriched = results.map((sig) => ({ ...sig, ...generateExplanation(sig) }));
+      res.json(enriched);
     } catch {
       res.status(400).json({ message: "Invalid query" });
     }

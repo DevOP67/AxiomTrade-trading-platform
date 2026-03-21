@@ -1,8 +1,21 @@
 import React, { useState } from "react";
 import { format } from "date-fns";
-import { CheckCircle, Activity } from "lucide-react";
+import { CheckCircle, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { Widget } from "@/components/Widget";
 import { useSignals } from "@/hooks/use-signals";
+import type { Signal } from "@shared/schema";
+
+type EnrichedSignal = Signal & {
+  confidence: number;
+  confidence_breakdown: { technical: number; sentiment: number; macro: number };
+  explanation: {
+    technical_factors: string[];
+    sentiment_factors: string[];
+    macro_factors: string[];
+    summary: string;
+  };
+  scenarios: { bullish: string; bearish: string; sideways: string };
+};
 
 function getScoreColor(score: number) {
   if (score > 85) return "hsl(var(--success))";
@@ -17,9 +30,11 @@ function getScoreLabel(score: number) {
 }
 
 export default function Signals() {
-  const { data: signals, isLoading, refetch } = useSignals(undefined, 50);
+  const { data: rawSignals, isLoading, refetch } = useSignals(undefined, 50);
+  const signals = rawSignals as EnrichedSignal[] | undefined;
   const [typeFilter, setTypeFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState(0);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const filteredSignals = signals?.filter((sig) => {
     const typeMatch = typeFilter === "all" || sig.type === typeFilter;
@@ -104,77 +119,145 @@ export default function Signals() {
                 <p>No signals match your filters</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto no-scrollbar">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto no-scrollbar">
                 {filteredSignals.map((sig) => {
-                  const isBuy  = sig.type === "BUY";
-                  const isHold = sig.type === "HOLD";
+                  const isBuy     = sig.type === "BUY";
+                  const isHold    = sig.type === "HOLD";
+                  const isExpanded = expandedId === sig.id;
+                  const bd        = sig.confidence_breakdown;
                   return (
                     <div
                       key={sig.id}
-                      className="p-4 bg-secondary/30 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer"
+                      className="bg-secondary/30 rounded-lg border border-border/50 hover:border-primary/30 transition-colors"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="px-3 py-1 rounded text-xs font-bold uppercase tracking-wider"
-                            style={{
-                              backgroundColor: isBuy
-                                ? "hsl(var(--success) / 0.2)"
-                                : isHold
-                                ? "hsl(var(--warning) / 0.2)"
-                                : "hsl(var(--destructive) / 0.2)",
-                              color: isBuy
-                                ? "hsl(var(--success))"
-                                : isHold
-                                ? "hsl(var(--warning))"
-                                : "hsl(var(--destructive))",
-                            }}
-                          >
-                            {sig.type}
+                      {/* ── Card Header ── */}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="px-3 py-1 rounded text-xs font-bold uppercase tracking-wider"
+                              style={{
+                                backgroundColor: isBuy ? "hsl(var(--success) / 0.2)" : isHold ? "hsl(var(--warning) / 0.2)" : "hsl(var(--destructive) / 0.2)",
+                                color: isBuy ? "hsl(var(--success))" : isHold ? "hsl(var(--warning))" : "hsl(var(--destructive))",
+                              }}
+                            >
+                              {sig.type}
+                            </span>
+                            <span className="font-bold text-sm text-foreground">{sig.symbol}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {format(new Date(sig.timestamp || ""), "HH:mm:ss")}
                           </span>
-                          <span className="font-bold text-sm text-foreground">{sig.symbol}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {format(new Date(sig.timestamp || ""), "HH:mm:ss")}
-                        </span>
+
+                        <div className="grid grid-cols-3 gap-4 pt-3 border-t border-border/50">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Price</p>
+                            <p className="font-mono font-bold text-foreground text-sm">
+                              ${parseFloat(sig.price).toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">AI Score</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all" style={{ width: `${sig.aiScore}%`, backgroundColor: getScoreColor(sig.aiScore) }} />
+                              </div>
+                              <span className="text-xs font-bold text-foreground">{sig.aiScore}</span>
+                            </div>
+                            <p className="text-xs mt-0.5" style={{ color: getScoreColor(sig.aiScore) }}>
+                              {getScoreLabel(sig.aiScore)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Action</p>
+                            <button
+                              data-testid={`button-execute-${sig.id}`}
+                              onClick={() => alert(`Executing ${sig.type} order for ${sig.symbol} at $${sig.price}`)}
+                              className="flex items-center gap-1 text-xs px-2 py-1 bg-primary/20 text-primary rounded hover:bg-primary/30 transition-colors"
+                            >
+                              <CheckCircle className="w-3 h-3" />
+                              Execute
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* ── Why this signal? toggle ── */}
+                        <button
+                          data-testid={`button-why-signal-${sig.id}`}
+                          onClick={() => setExpandedId(isExpanded ? null : sig.id)}
+                          className="mt-3 flex items-center gap-1 text-xs text-primary/70 hover:text-primary transition-colors"
+                        >
+                          {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                          Why this signal?
+                        </button>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4 pt-3 border-t border-border/50">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Price</p>
-                          <p className="font-mono font-bold text-foreground text-sm">
-                            ${parseFloat(sig.price).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">AI Score</p>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{
-                                  width: `${sig.aiScore}%`,
-                                  backgroundColor: getScoreColor(sig.aiScore),
-                                }}
-                              />
+                      {/* ── Expandable Intelligence Panel ── */}
+                      {isExpanded && sig.explanation && (
+                        <div className="border-t border-border/50 p-4 space-y-4 text-xs">
+
+                          {/* Summary */}
+                          <p className="text-muted-foreground leading-relaxed">{sig.explanation.summary}</p>
+
+                          {/* Confidence Breakdown */}
+                          {bd && (
+                            <div className="space-y-2">
+                              <p className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Confidence Breakdown <span className="text-primary ml-1">{sig.confidence}%</span></p>
+                              {(["technical", "sentiment", "macro"] as const).map((key) => (
+                                <div key={key} className="flex items-center gap-2">
+                                  <span className="w-20 text-muted-foreground capitalize">{key}</span>
+                                  <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full" style={{ width: `${bd[key]}%`, backgroundColor: key === "technical" ? "hsl(var(--primary))" : key === "sentiment" ? "hsl(var(--warning))" : "hsl(var(--success))" }} />
+                                  </div>
+                                  <span className="w-8 text-right text-foreground font-mono">{bd[key]}%</span>
+                                </div>
+                              ))}
                             </div>
-                            <span className="text-xs font-bold text-foreground">{sig.aiScore}</span>
+                          )}
+
+                          {/* Factors */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {([
+                              { label: "Technical", key: "technical_factors" as const, color: "text-primary" },
+                              { label: "Sentiment", key: "sentiment_factors" as const, color: "text-warning" },
+                              { label: "Macro",     key: "macro_factors"     as const, color: "text-success" },
+                            ]).map(({ label, key, color }) => (
+                              <div key={key}>
+                                <p className={`font-semibold uppercase tracking-wider text-[10px] mb-1.5 ${color}`}>{label}</p>
+                                <ul className="space-y-1">
+                                  {sig.explanation[key].map((f, i) => (
+                                    <li key={i} className="text-muted-foreground flex gap-1.5">
+                                      <span className="mt-0.5 shrink-0">•</span>
+                                      <span>{f}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
                           </div>
-                          <p className="text-xs mt-0.5" style={{ color: getScoreColor(sig.aiScore) }}>
-                            {getScoreLabel(sig.aiScore)}
-                          </p>
+
+                          {/* Scenarios */}
+                          <div>
+                            <p className="font-semibold text-foreground uppercase tracking-wider text-[10px] mb-2">Scenarios</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                              <div className="bg-success/5 border border-success/20 rounded p-2">
+                                <p className="text-success font-semibold mb-1">Bullish</p>
+                                <p className="text-muted-foreground">{sig.scenarios.bullish}</p>
+                              </div>
+                              <div className="bg-destructive/5 border border-destructive/20 rounded p-2">
+                                <p className="text-destructive font-semibold mb-1">Bearish</p>
+                                <p className="text-muted-foreground">{sig.scenarios.bearish}</p>
+                              </div>
+                              <div className="bg-warning/5 border border-warning/20 rounded p-2">
+                                <p className="text-warning font-semibold mb-1">Sideways</p>
+                                <p className="text-muted-foreground">{sig.scenarios.sideways}</p>
+                              </div>
+                            </div>
+                          </div>
+
                         </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Action</p>
-                          <button
-                            onClick={() => alert(`Executing ${sig.type} order for ${sig.symbol} at $${sig.price}`)}
-                            className="flex items-center gap-1 text-xs px-2 py-1 bg-primary/20 text-primary rounded hover:bg-primary/30 transition-colors"
-                          >
-                            <CheckCircle className="w-3 h-3" />
-                            Execute
-                          </button>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
