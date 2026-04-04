@@ -140,5 +140,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   }, 2000);
 
+  // ── Market Tickers (Binance proxy) ──────────────────────────────────────────
+  app.get("/api/market/tickers", async (req, res) => {
+    try {
+      const symbols = [
+        "BTCUSDT","ETHUSDT","SOLUSDT","AVAXUSDT","XRPUSDT",
+        "DOTUSDT","MATICUSDT","LINKUSDT","DOGEUSDT","ADAUSDT",
+        "UNIUSDT","ATOMUSDT","LTCUSDT","BCHUSDT","NEARUSDT",
+      ];
+      const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(symbols))}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) throw new Error(`Binance responded ${response.status}`);
+      const data = await response.json();
+      res.json(data);
+    } catch (err) {
+      res.status(502).json({ message: "Failed to fetch market data from Binance" });
+    }
+  });
+
   return httpServer;
 }
