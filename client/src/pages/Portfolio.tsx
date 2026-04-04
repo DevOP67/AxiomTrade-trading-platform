@@ -81,25 +81,39 @@ export default function Portfolio() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <Widget title="Portfolio Allocation" menuItems={commonMenuItems}>
-          <ResponsiveContainer width="100%" height={280}>
+        <Widget title="Portfolio Allocation" menuItems={commonMenuItems} overflowVisible>
+          <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
                 data={ALLOCATION_DATA}
                 cx="50%"
                 cy="50%"
-                outerRadius={90}
+                outerRadius={85}
+                innerRadius={42}
                 dataKey="value"
-                label={({ name, value }) => `${name} ${value}%`}
-                labelLine={false}
+                paddingAngle={3}
+                strokeWidth={0}
               >
                 {ALLOCATION_DATA.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip {...tooltipStyle} formatter={(v) => `${v}%`} />
+              <Tooltip
+                {...tooltipStyle}
+                formatter={(v) => [`${v}%`, "Allocation"]}
+                wrapperStyle={{ zIndex: 50 }}
+                cursor={false}
+              />
             </PieChart>
           </ResponsiveContainer>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 justify-center">
+            {ALLOCATION_DATA.map((item, i) => (
+              <span key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                {item.name} <span className="font-semibold text-foreground">{item.value}%</span>
+              </span>
+            ))}
+          </div>
         </Widget>
 
         <div className="lg:col-span-2">
@@ -109,7 +123,11 @@ export default function Portfolio() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
                 <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip {...tooltipStyle} formatter={(v: any) => `$${Number(v).toLocaleString()}`} />
+                <Tooltip
+                  {...tooltipStyle}
+                  formatter={(v: any) => [`$${Number(v).toLocaleString()}`, "Value"]}
+                  cursor={{ fill: "rgba(255,255,255,0.05)", radius: 4 }}
+                />
                 <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -124,10 +142,14 @@ export default function Portfolio() {
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
             <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-            <Tooltip {...tooltipStyle} formatter={(v: any) => `$${Number(v).toLocaleString()}`} />
+            <Tooltip
+              {...tooltipStyle}
+              formatter={(v: any) => [`$${Number(v).toLocaleString()}`, "Portfolio Value"]}
+              cursor={{ fill: "rgba(255,255,255,0.05)", radius: 4 }}
+            />
             <Bar dataKey="value" radius={[6, 6, 0, 0]}>
               {PERFORMANCE_DATA.map((_, i) => (
-                <Cell key={i} fill={i === PERFORMANCE_DATA.length - 1 ? "hsl(var(--primary))" : "hsl(var(--secondary))"} />
+                <Cell key={i} fill={i === PERFORMANCE_DATA.length - 1 ? "hsl(var(--primary))" : "rgba(148,163,184,0.35)"} />
               ))}
             </Bar>
           </BarChart>

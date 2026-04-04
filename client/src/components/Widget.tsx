@@ -14,6 +14,7 @@ interface WidgetProps {
   action?: React.ReactNode;
   className?: string;
   noPadding?: boolean;
+  overflowVisible?: boolean;
   menuItems?: WidgetMenuItem[];
   onRefresh?: () => void;
 }
@@ -24,6 +25,7 @@ export function Widget({
   action,
   className = "",
   noPadding = false,
+  overflowVisible = false,
   menuItems,
   onRefresh,
 }: WidgetProps) {
@@ -107,7 +109,7 @@ export function Widget({
       </div>
 
       {/* Body */}
-      <div className={`flex-1 overflow-hidden ${noPadding ? "" : "p-4"}`}>
+      <div className={`flex-1 ${overflowVisible ? "overflow-visible" : "overflow-hidden"} ${noPadding ? "" : "p-4"}`}>
         {children}
       </div>
 

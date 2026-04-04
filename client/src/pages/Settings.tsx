@@ -46,13 +46,36 @@ export default function Settings() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  function applyTheme(theme: string) {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.add("light");
+    } else if (theme === "dark") {
+      root.classList.remove("light");
+    } else {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (prefersDark) root.classList.remove("light");
+      else root.classList.add("light");
+    }
+  }
+
+  useEffect(() => {
+    applyTheme(settings.theme);
+  }, []);
+
   function updateSetting(key: string, value: any) {
     setSettings((prev: any) => ({ ...prev, [key]: value }));
+  }
+
+  function handleThemeChange(theme: string) {
+    updateSetting("theme", theme);
+    applyTheme(theme);
   }
 
   function handleSave() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     localStorage.setItem("quantforge_api_key", apiKey);
+    applyTheme(settings.theme);
     showToast("Settings saved successfully!");
   }
 
@@ -121,7 +144,8 @@ export default function Settings() {
                 ].map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => updateSetting("theme", t.id)}
+                    onClick={() => handleThemeChange(t.id)}
+                    data-testid={`button-theme-${t.id}`}
                     className={`p-4 rounded-lg border-2 font-semibold text-sm transition-all ${settings.theme === t.id ? "border-primary bg-primary/10 text-primary" : "border-border/50 hover:border-primary/50 text-foreground"}`}
                   >
                     {t.icon}
