@@ -21,20 +21,20 @@ export default function Dashboard() {
     if (activeStrategies.length === 0) return;
 
     const interval = setInterval(() => {
-      if (Math.random() > 0.9) {
+      if (Math.random() > 0.5) {
         const strat = activeStrategies[Math.floor(Math.random() * activeStrategies.length)];
-        const symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT"];
+        const symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "AVAX/USDT", "XRP/USDT"];
         const isBuy = Math.random() > 0.5;
         const basePrice = isBuy ? 64000 : 64500;
         createSignal.mutate({
           symbol: symbols[Math.floor(Math.random() * symbols.length)],
           type: isBuy ? "BUY" : "SELL",
           strategyId: strat.id,
-          price: (basePrice + (Math.random() * 100 - 50)).toFixed(2),
+          price: (basePrice + (Math.random() * 200 - 100)).toFixed(2),
           aiScore: Math.floor(Math.random() * 30) + 70,
         });
       }
-    }, 3000);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [strategies]);
@@ -80,7 +80,8 @@ export default function Dashboard() {
                     {portLoading ? (
                       <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">Loading...</td></tr>
                     ) : portfolioData?.positions.map((pos) => {
-                      const currentPrice = parseFloat(pos.entryPrice) * (1 + (Math.random() * 0.08 - 0.03));
+                      const drift = ((pos.id * 7 + 13) % 11 - 5) * 0.01;
+                      const currentPrice = parseFloat(pos.entryPrice) * (1 + drift);
                       const pnlPct = ((currentPrice / parseFloat(pos.entryPrice)) - 1) * 100;
                       const isProfit = pnlPct >= 0;
                       return (
@@ -132,7 +133,7 @@ export default function Dashboard() {
         <div className="lg:col-span-1">
           <Widget
             title="Live Signal Feed"
-            className="h-[724px]"
+            className="h-[500px] lg:h-[724px]"
             noPadding
             onRefresh={() => refetchSignals()}
             action={

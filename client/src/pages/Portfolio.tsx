@@ -149,7 +149,8 @@ export default function Portfolio() {
             </thead>
             <tbody className="divide-y divide-border/50">
               {positions.map((pos) => {
-                const currentPrice = parseFloat(pos.entryPrice) * (1 + (Math.random() * 0.08 - 0.03));
+                const drift        = ((pos.id * 7 + 13) % 11 - 5) * 0.01;
+                const currentPrice = parseFloat(pos.entryPrice) * (1 + drift);
                 const totalCost    = parseFloat(pos.amount) * parseFloat(pos.entryPrice);
                 const currentVal   = parseFloat(pos.amount) * currentPrice;
                 const pnl          = currentVal - totalCost;

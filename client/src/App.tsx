@@ -36,7 +36,7 @@ function ProtectedLayout() {
   return (
     <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/20">
       <Sidebar />
-      <main className="flex-1 overflow-hidden pt-14 md:pt-0">
+      <main className="flex-1 overflow-hidden flex flex-col pt-14 md:pt-0">
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/markets" component={Markets} />

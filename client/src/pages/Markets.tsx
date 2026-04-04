@@ -57,7 +57,7 @@ export default function Markets() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Main Chart */}
         <div className="lg:col-span-2">
-          <Widget title={`${selectedPair} — 24h Chart`} className="h-[420px]" onRefresh={() => {}}>
+          <Widget title={`${selectedPair} — 24h Chart`} className="h-[280px] md:h-[420px]" onRefresh={() => {}}>
             <MarketChart symbol={selectedPair} color="hsl(var(--primary))" dataPoints={100} />
           </Widget>
         </div>

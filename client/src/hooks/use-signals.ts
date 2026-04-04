@@ -13,8 +13,7 @@ export function useSignals(symbol?: string, limit: number = 50) {
       if (!res.ok) throw new Error("Failed to fetch signals");
       return api.signals.list.responses[200].parse(await res.json());
     },
-    // Refetch frequently to simulate live dashboard if we aren't mutating locally
-    refetchInterval: 5000, 
+    refetchInterval: 3000,
   });
 }
 
