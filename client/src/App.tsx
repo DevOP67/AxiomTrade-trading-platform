@@ -36,7 +36,7 @@ function ProtectedLayout() {
   return (
     <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/20">
       <Sidebar />
-      <main className="flex-1 overflow-hidden flex flex-col pt-14 md:pt-0">
+      <main className="flex-1 overflow-y-auto">
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/markets" component={Markets} />
@@ -67,12 +67,8 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/login">
-        {user ? <Redirect to="/" /> : <Login />}
-      </Route>
-      <Route path="/signup">
-        {user ? <Redirect to="/" /> : <Signup />}
-      </Route>
+      <Route path="/login">{user ? <Redirect to="/" /> : <Login />}</Route>
+      <Route path="/signup">{user ? <Redirect to="/" /> : <Signup />}</Route>
       <Route>
         <ProtectedLayout />
       </Route>
