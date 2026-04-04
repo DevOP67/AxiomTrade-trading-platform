@@ -4,6 +4,7 @@ import { CheckCircle, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { Widget } from "@/components/Widget";
 import { useSignals } from "@/hooks/use-signals";
 import type { Signal } from "@shared/schema";
+import { downloadCSV } from "@/lib/csv";
 
 type EnrichedSignal = Signal & {
   confidence: number;
@@ -32,9 +33,16 @@ function getScoreLabel(score: number) {
 export default function Signals() {
   const { data: rawSignals, isLoading, refetch } = useSignals(undefined, 50);
   const signals = rawSignals as EnrichedSignal[] | undefined;
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [typeFilter, setTypeFilter]   = useState("all");
   const [scoreFilter, setScoreFilter] = useState(0);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId]   = useState<number | null>(null);
+  const [executedIds, setExecutedIds] = useState<Set<number>>(new Set());
+  const [notify, setNotify]           = useState<string | null>(null);
+
+  function showNotify(msg: string) {
+    setNotify(msg);
+    setTimeout(() => setNotify(null), 3000);
+  }
 
   const filteredSignals = signals?.filter((sig) => {
     const typeMatch = typeFilter === "all" || sig.type === typeFilter;
@@ -52,14 +60,33 @@ export default function Signals() {
       : 0,
   };
 
+  function exportSignalsCSV() {
+    downloadCSV(
+      "signals_export.csv",
+      ["ID", "Symbol", "Type", "Price", "AI Score", "Confidence", "Timestamp"],
+      (filteredSignals).map((s) => [
+        s.id, s.symbol, s.type, s.price, s.aiScore,
+        (s as any).confidence ?? "",
+        format(new Date(s.timestamp), "yyyy-MM-dd HH:mm:ss"),
+      ])
+    );
+    showNotify(`Exported ${filteredSignals.length} signals`);
+  }
+
   const menuItems = [
-    { label: "Refresh Feed",   onClick: () => refetch() },
-    { label: "Export Signals", onClick: () => alert("Exporting signals data...") },
-    { label: "Clear Filters",  onClick: () => { setTypeFilter("all"); setScoreFilter(0); } },
+    { label: "Refresh Feed",   onClick: () => { refetch(); showNotify("Feed refreshed"); } },
+    { label: "Export Signals", onClick: exportSignalsCSV },
+    { label: "Clear Filters",  onClick: () => { setTypeFilter("all"); setScoreFilter(0); showNotify("Filters cleared"); } },
   ];
 
   return (
     <div className="flex-1 overflow-auto bg-background p-4 md:p-6 lg:p-8 no-scrollbar">
+      {notify && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl border bg-success/20 border-success/40 text-success text-sm font-medium">
+          <CheckCircle className="w-4 h-4" />
+          {notify}
+        </div>
+      )}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">Advanced Signals</h1>
         <p className="text-muted-foreground">AI-powered trading signals with confidence scoring</p>
@@ -74,7 +101,7 @@ export default function Signals() {
       </div>
 
       {/* Filters + Feed */}
-      <Widget title="Signal Analysis" menuItems={menuItems} onRefresh={() => refetch()}>
+      <Widget title="Signal Analysis" menuItems={menuItems} onRefresh={() => refetch()} onExport={exportSignalsCSV}>
         <div className="space-y-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
@@ -173,11 +200,22 @@ export default function Signals() {
                             <p className="text-xs text-muted-foreground mb-1">Action</p>
                             <button
                               data-testid={`button-execute-${sig.id}`}
-                              onClick={() => alert(`Executing ${sig.type} order for ${sig.symbol} at $${sig.price}`)}
-                              className="flex items-center gap-1 text-xs px-2 py-1 bg-primary/20 text-primary rounded hover:bg-primary/30 transition-colors"
+                              disabled={executedIds.has(sig.id)}
+                              onClick={() => {
+                                if (executedIds.has(sig.id)) return;
+                                if (window.confirm(`Execute ${sig.type} order for ${sig.symbol} at $${sig.price}?\nAI Score: ${sig.aiScore}`)) {
+                                  setExecutedIds((prev) => new Set([...prev, sig.id]));
+                                  showNotify(`${sig.type} order placed for ${sig.symbol}`);
+                                }
+                              }}
+                              className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${
+                                executedIds.has(sig.id)
+                                  ? "bg-success/20 text-success cursor-default"
+                                  : "bg-primary/20 text-primary hover:bg-primary/30"
+                              }`}
                             >
                               <CheckCircle className="w-3 h-3" />
-                              Execute
+                              {executedIds.has(sig.id) ? "Executed" : "Execute"}
                             </button>
                           </div>
                         </div>

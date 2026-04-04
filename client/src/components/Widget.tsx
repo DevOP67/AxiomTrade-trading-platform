@@ -17,6 +17,7 @@ interface WidgetProps {
   overflowVisible?: boolean;
   menuItems?: WidgetMenuItem[];
   onRefresh?: () => void;
+  onExport?: () => void;
 }
 
 export function Widget({
@@ -28,6 +29,7 @@ export function Widget({
   overflowVisible = false,
   menuItems,
   onRefresh,
+  onExport,
 }: WidgetProps) {
   const [open, setOpen] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -51,13 +53,17 @@ export function Widget({
       label: "Export CSV",
       icon: <Download className="w-3.5 h-3.5" />,
       onClick: () => {
-        const blob = new Blob([`Widget: ${title}\nExported at: ${new Date().toISOString()}`], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${title.replace(/\s+/g, "_")}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+        if (onExport) {
+          onExport();
+        } else {
+          const blob = new Blob([`Widget: ${title}\nExported at: ${new Date().toISOString()}`], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${title.replace(/\s+/g, "_")}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
         setOpen(false);
       },
     },

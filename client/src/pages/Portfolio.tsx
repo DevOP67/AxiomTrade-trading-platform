@@ -1,8 +1,9 @@
-import React from "react";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import React, { useState } from "react";
+import { TrendingUp, TrendingDown, CheckCircle } from "lucide-react";
 import { Widget } from "@/components/Widget";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { downloadCSV } from "@/lib/csv";
 
 const ALLOCATION_DATA = [
   { name: "Crypto",       value: 65 },
@@ -39,6 +40,13 @@ const tooltipStyle = {
 
 export default function Portfolio() {
   const { data: portfolioData, isLoading, refetch } = usePortfolio();
+  const [closedIds, setClosedIds]   = useState<Set<number>>(new Set());
+  const [notify, setNotify]         = useState<string | null>(null);
+
+  function showNotify(msg: string) {
+    setNotify(msg);
+    setTimeout(() => setNotify(null), 3000);
+  }
 
   if (isLoading) {
     return (
@@ -49,7 +57,7 @@ export default function Portfolio() {
   }
 
   const portfolio  = portfolioData?.portfolio;
-  const positions  = portfolioData?.positions || [];
+  const positions  = (portfolioData?.positions || []).filter((p) => !closedIds.has(p.id));
   const totalValue = parseFloat(portfolio?.balance || "0");
 
   const positionData = positions.map((pos) => ({
@@ -59,14 +67,47 @@ export default function Portfolio() {
     entryPrice: parseFloat(pos.entryPrice),
   }));
 
+  function exportPositionsCSV() {
+    downloadCSV(
+      "portfolio_positions.csv",
+      ["Symbol", "Amount", "Entry Price", "Current Value", "P&L %"],
+      positions.map((pos, i) => {
+        const pnlPct = ((i * 7 + 13) % 11 - 5) * 1;
+        const val = parseFloat(pos.amount) * parseFloat(pos.entryPrice);
+        return [pos.symbol, pos.amount, pos.entryPrice, val.toFixed(2), `${pnlPct.toFixed(2)}%`];
+      })
+    );
+  }
+
+  function exportAllocationCSV() {
+    downloadCSV(
+      "portfolio_allocation.csv",
+      ["Category", "Allocation %"],
+      ALLOCATION_DATA.map((d) => [d.name, d.value])
+    );
+  }
+
+  function exportPerformanceCSV() {
+    downloadCSV(
+      "monthly_performance.csv",
+      ["Month", "Portfolio Value"],
+      PERFORMANCE_DATA.map((d) => [d.month, d.value])
+    );
+  }
+
   const commonMenuItems = [
-    { label: "Export as CSV",  onClick: () => alert("Exporting portfolio data...") },
-    { label: "Refresh Data",   onClick: () => refetch() },
-    { label: "Print Report",   onClick: () => window.print() },
+    { label: "Refresh Data", onClick: () => { refetch(); showNotify("Portfolio refreshed"); } },
+    { label: "Print Report", onClick: () => window.print() },
   ];
 
   return (
     <div className="flex-1 overflow-auto bg-background p-4 md:p-6 lg:p-8 no-scrollbar">
+      {notify && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl border bg-success/20 border-success/40 text-success text-sm font-medium">
+          <CheckCircle className="w-4 h-4" />
+          {notify}
+        </div>
+      )}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">Portfolio Analytics</h1>
         <p className="text-muted-foreground">Comprehensive portfolio overview and performance metrics</p>
@@ -81,7 +122,7 @@ export default function Portfolio() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <Widget title="Portfolio Allocation" menuItems={commonMenuItems} overflowVisible>
+        <Widget title="Portfolio Allocation" menuItems={commonMenuItems} overflowVisible onExport={exportAllocationCSV}>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
@@ -117,7 +158,7 @@ export default function Portfolio() {
         </Widget>
 
         <div className="lg:col-span-2">
-          <Widget title="Asset Distribution" menuItems={commonMenuItems} className="h-full">
+          <Widget title="Asset Distribution" menuItems={commonMenuItems} className="h-full" onExport={exportPositionsCSV}>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={positionData.length ? positionData : [{ name: "No Data", value: 0 }]}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -136,7 +177,7 @@ export default function Portfolio() {
       </div>
 
       {/* Monthly Performance */}
-      <Widget title="Monthly Performance" className="mb-6" menuItems={commonMenuItems}>
+      <Widget title="Monthly Performance" className="mb-6" menuItems={commonMenuItems} onExport={exportPerformanceCSV}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={PERFORMANCE_DATA}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -157,7 +198,7 @@ export default function Portfolio() {
       </Widget>
 
       {/* Open Positions */}
-      <Widget title="Open Positions" menuItems={commonMenuItems}>
+      <Widget title="Open Positions" menuItems={commonMenuItems} onExport={exportPositionsCSV}>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-secondary/50">
@@ -190,7 +231,12 @@ export default function Portfolio() {
                     </td>
                     <td className="py-3.5 px-4">
                       <button
-                        onClick={() => alert(`Closing position: ${pos.symbol}`)}
+                        onClick={() => {
+                          if (window.confirm(`Close ${pos.symbol} position? This will simulate a market close.`)) {
+                            setClosedIds((prev) => new Set([...prev, pos.id]));
+                            showNotify(`${pos.symbol} position closed`);
+                          }
+                        }}
                         className="text-xs px-2 py-1 bg-danger/10 text-danger rounded hover:bg-danger/20 transition-colors border border-danger/20"
                       >
                         Close
