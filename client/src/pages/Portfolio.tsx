@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { TrendingUp, TrendingDown, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import { TrendingUp, TrendingDown, X } from "lucide-react";
 import { Widget } from "@/components/Widget";
 import {
   BarChart,
@@ -12,6 +12,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { downloadCSV } from "@/lib/csv";
@@ -49,6 +50,51 @@ const tooltipStyle = {
   },
 };
 
+function getPnl(id: number) {
+  return (((id * 7 + 13) % 11) - 5) * 0.01;
+}
+
+function MetricCard({
+  label,
+  value,
+  change,
+  isPositive,
+  subtitle,
+}: {
+  label: string;
+  value: string;
+  change?: string;
+  isPositive?: boolean;
+  subtitle?: string;
+}) {
+  return (
+    <div
+      className="rounded-xl border border-border/50 bg-secondary/30 p-5 flex flex-col gap-1"
+      data-testid={`metric-${label.toLowerCase().replace(/\s+/g, "-")}`}
+    >
+      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+        {label}
+      </p>
+      <p className="text-2xl font-bold font-mono text-foreground">{value}</p>
+      {change && (
+        <p
+          className={`text-xs font-semibold flex items-center gap-1 ${isPositive ? "text-success" : "text-danger"}`}
+        >
+          {isPositive ? (
+            <TrendingUp className="w-3 h-3" />
+          ) : (
+            <TrendingDown className="w-3 h-3" />
+          )}
+          {change}
+        </p>
+      )}
+      {subtitle && (
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      )}
+    </div>
+  );
+}
+
 export default function Portfolio() {
   const { data: portfolioData, isLoading, refetch } = usePortfolio();
   const [closedIds, setClosedIds] = useState<Set<number>>(new Set());
@@ -70,29 +116,30 @@ export default function Portfolio() {
   }
 
   const portfolio = portfolioData?.portfolio;
-  const positions = portfolioData?.positions || [];
+  const allPositions = portfolioData?.positions || [];
+  const positions = allPositions.filter((p) => !closedIds.has(p.id));
   const totalValue = parseFloat(portfolio?.balance || "0");
 
   const positionData = positions.map((pos) => ({
     name: pos.symbol,
     value: parseFloat(pos.amount) * parseFloat(pos.entryPrice),
-    amount: parseFloat(pos.amount),
-    entryPrice: parseFloat(pos.entryPrice),
   }));
 
   function exportPositionsCSV() {
     downloadCSV(
       "portfolio_positions.csv",
       ["Symbol", "Amount", "Entry Price", "Current Value", "P&L %"],
-      positions.map((pos, i) => {
-        const pnlPct = (((i * 7 + 13) % 11) - 5) * 1;
-        const val = parseFloat(pos.amount) * parseFloat(pos.entryPrice);
+      positions.map((pos) => {
+        const pnlPct = getPnl(pos.id) * 100;
+        const entryPrice = parseFloat(pos.entryPrice);
+        const amount = parseFloat(pos.amount);
+        const val = amount * entryPrice * (1 + getPnl(pos.id));
         return [
           pos.symbol,
-          pos.amount,
-          pos.entryPrice,
+          amount.toFixed(4),
+          entryPrice.toLocaleString(),
           val.toFixed(2),
-          `${pnlPct.toFixed(2)}%`,
+          `${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%`,
         ];
       }),
     );
@@ -114,17 +161,36 @@ export default function Portfolio() {
     );
   }
 
-  const commonMenuItems = [
-    {
-      label: "Export as CSV",
-      onClick: () => alert("Exporting portfolio data..."),
-    },
-    { label: "Refresh Data", onClick: () => refetch() },
-    { label: "Print Report", onClick: () => window.print() },
-  ];
+  function handleClose(id: number, symbol: string) {
+    if (!window.confirm(`Close position for ${symbol}?`)) return;
+    setClosedIds((prev) => new Set([...prev, id]));
+    showNotify(`${symbol} position closed`);
+  }
+
+  const renderLegend = () => (
+    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+      {ALLOCATION_DATA.map((entry, i) => (
+        <div key={entry.name} className="flex items-center gap-1.5">
+          <span
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+            style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+          />
+          <span className="text-xs text-muted-foreground">
+            {entry.name} ({entry.value}%)
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-full bg-background p-4 md:p-6 lg:p-8">
+      {notify && (
+        <div className="fixed top-4 right-4 z-50 bg-success text-white text-sm px-4 py-2 rounded-lg shadow-lg">
+          {notify}
+        </div>
+      )}
+
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Portfolio Analytics
@@ -138,9 +204,7 @@ export default function Portfolio() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard
           label="Total Balance"
-          value={`$${totalValue.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-          })}`}
+          value={`$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
           change="+2.4%"
           isPositive
         />
@@ -161,9 +225,12 @@ export default function Portfolio() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <Widget
           title="Portfolio Allocation"
-          menuItems={commonMenuItems}
-          overflowVisible
           onExport={exportAllocationCSV}
+          menuItems={[
+            { label: "Export as CSV", onClick: exportAllocationCSV },
+            { label: "Refresh Data", onClick: () => refetch() },
+          ]}
+          overflowVisible
         >
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
@@ -178,7 +245,10 @@ export default function Portfolio() {
                 strokeWidth={0}
               >
                 {ALLOCATION_DATA.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  <Cell
+                    key={i}
+                    fill={CHART_COLORS[i % CHART_COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -189,15 +259,19 @@ export default function Portfolio() {
               />
             </PieChart>
           </ResponsiveContainer>
+          {renderLegend()}
         </Widget>
 
         <div className="lg:col-span-2">
           <Widget
             title="Asset Distribution"
-            menuItems={commonMenuItems}
             className="h-full"
+            menuItems={[
+              { label: "Export as CSV", onClick: exportPositionsCSV },
+              { label: "Refresh Data", onClick: () => refetch() },
+            ]}
           >
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart
                 data={
                   positionData.length
@@ -222,7 +296,11 @@ export default function Portfolio() {
                 />
                 <Tooltip
                   {...tooltipStyle}
-                  formatter={(v: any) => `$${Number(v).toLocaleString()}`}
+                  formatter={(v: any) => [
+                    `$${Number(v).toLocaleString()}`,
+                    "Value",
+                  ]}
+                  cursor={{ fill: "rgba(255,255,255,0.05)" }}
                 />
                 <Bar
                   dataKey="value"
@@ -239,7 +317,12 @@ export default function Portfolio() {
       <Widget
         title="Monthly Performance"
         className="mb-6"
-        menuItems={commonMenuItems}
+        onExport={exportPerformanceCSV}
+        menuItems={[
+          { label: "Export as CSV", onClick: exportPerformanceCSV },
+          { label: "Refresh Data", onClick: () => refetch() },
+          { label: "Print Report", onClick: () => window.print() },
+        ]}
       >
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={PERFORMANCE_DATA}>
@@ -260,7 +343,11 @@ export default function Portfolio() {
             />
             <Tooltip
               {...tooltipStyle}
-              formatter={(v: any) => `$${Number(v).toLocaleString()}`}
+              formatter={(v: any) => [
+                `$${Number(v).toLocaleString()}`,
+                "Portfolio Value",
+              ]}
+              cursor={{ fill: "rgba(255,255,255,0.05)" }}
             />
             <Bar dataKey="value" radius={[6, 6, 0, 0]}>
               {PERFORMANCE_DATA.map((_, i) => (
@@ -269,7 +356,7 @@ export default function Portfolio() {
                   fill={
                     i === PERFORMANCE_DATA.length - 1
                       ? "hsl(var(--primary))"
-                      : "hsl(var(--secondary))"
+                      : "rgba(148,163,184,0.25)"
                   }
                 />
               ))}
@@ -281,58 +368,98 @@ export default function Portfolio() {
       {/* Open Positions */}
       <Widget
         title="Open Positions"
-        menuItems={commonMenuItems}
         onExport={exportPositionsCSV}
+        menuItems={[
+          { label: "Export as CSV", onClick: exportPositionsCSV },
+          { label: "Refresh Data", onClick: () => refetch() },
+        ]}
       >
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-secondary/50">
               <tr>
-                {[
-                  "Asset",
-                  "Amount",
-                  "Entry Price",
-                  "Current Value",
-                  "P&L",
-                  "Action",
-                ].map((h, i) => (
-                  <th
-                    key={h}
-                    className={`py-3 px-4 text-xs font-semibold text-muted-foreground uppercase ${
-                      i === 0 || i === 5 ? "" : "text-right"
-                    }`}
-                  >
-                    {h}
-                  </th>
-                ))}
+                {["Asset", "Amount", "Entry Price", "Current Value", "P&L", "Action"].map(
+                  (h, i) => (
+                    <th
+                      key={h}
+                      className={`py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider ${
+                        i > 0 && i < 5 ? "text-right" : ""
+                      }`}
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
-              {positions.map((pos) => {
-                const currentPrice =
-                  parseFloat(pos.entryPrice) *
-                  (1 + (Math.random() * 0.08 - 0.03));
-                const totalCost =
-                  parseFloat(pos.amount) * parseFloat(pos.entryPrice);
-                const currentVal = parseFloat(pos.amount) * currentPrice;
-                const pnl = currentVal - totalCost;
-                const pnlPct = (pnl / totalCost) * 100;
-                const isProfit = pnl >= 0;
+            <tbody className="divide-y divide-border/50 text-sm font-mono">
+              {positions.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="py-8 text-center text-muted-foreground text-sm font-sans"
+                  >
+                    No open positions
+                  </td>
+                </tr>
+              ) : (
+                positions.map((pos) => {
+                  const pnlFrac = getPnl(pos.id);
+                  const entryPrice = parseFloat(pos.entryPrice);
+                  const amount = parseFloat(pos.amount);
+                  const currentPrice = entryPrice * (1 + pnlFrac);
+                  const currentValue = amount * currentPrice;
+                  const pnlPct = pnlFrac * 100;
+                  const pnlDollar = amount * (currentPrice - entryPrice);
+                  const isProfit = pnlFrac >= 0;
 
-                return (
-                  <tr key={pos.id}>
-                    <td>{pos.symbol}</td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr
+                      key={pos.id}
+                      className="hover:bg-secondary/30 transition-colors"
+                      data-testid={`row-position-${pos.id}`}
+                    >
+                      <td className="py-3 px-4 font-bold font-sans text-foreground">
+                        {pos.symbol}
+                      </td>
+                      <td className="py-3 px-4 text-right text-muted-foreground">
+                        {amount.toFixed(4)}
+                      </td>
+                      <td className="py-3 px-4 text-right text-foreground">
+                        ${entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3 px-4 text-right text-foreground">
+                        ${currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                      <td
+                        className={`py-3 px-4 text-right font-semibold ${isProfit ? "text-success" : "text-danger"}`}
+                      >
+                        <div>
+                          {isProfit ? "+" : ""}
+                          {pnlPct.toFixed(2)}%
+                        </div>
+                        <div className="text-xs opacity-75">
+                          {isProfit ? "+" : ""}${pnlDollar.toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => handleClose(pos.id, pos.symbol)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-danger/40 text-danger hover:bg-danger/10 transition-colors"
+                          data-testid={`button-close-${pos.id}`}
+                        >
+                          <X className="w-3 h-3" />
+                          Close
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
       </Widget>
     </div>
   );
-}
-
-function MetricCard({ label, value, change, isPositive, subtitle }: any) {
-  return <div>{label}</div>;
 }
