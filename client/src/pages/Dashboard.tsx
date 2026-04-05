@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { format } from "date-fns";
+import { useEffect } from "react";
 import { Activity, TrendingUp, TrendingDown, BrainCircuit } from "lucide-react";
 import { Widget } from "@/components/Widget";
 import { MarketChart } from "@/components/MarketChart";
@@ -7,6 +6,37 @@ import { Switch } from "@/components/Switch";
 import { useStrategies, useUpdateStrategy } from "@/hooks/use-strategies";
 import { useSignals, useCreateSignal } from "@/hooks/use-signals";
 import { usePortfolio } from "@/hooks/use-portfolio";
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  change?: string;
+  isPositive?: boolean;
+  subtitle?: string;
+  highlight?: boolean;
+}
+
+function StatCard({ title, value, change, isPositive, subtitle, highlight }: StatCardProps) {
+  return (
+    <div
+      className={`rounded-xl border p-4 flex flex-col gap-1 ${
+        highlight
+          ? "border-primary/40 bg-primary/10"
+          : "border-border/50 bg-secondary/30"
+      }`}
+    >
+      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{title}</p>
+      <p className="text-xl font-bold font-mono text-foreground">{value}</p>
+      {change && (
+        <p className={`text-xs font-semibold flex items-center gap-1 ${isPositive ? "text-success" : "text-danger"}`}>
+          {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+          {change}
+        </p>
+      )}
+      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { data: strategies, isLoading: stratLoading } = useStrategies();
@@ -240,7 +270,33 @@ export default function Dashboard() {
                       key={sig.id}
                       className={`p-4 border-b border-border/40 hover:bg-secondary/30 transition-colors ${i === 0 ? (isBuy ? "animate-flash-buy" : "animate-flash-sell") : ""}`}
                     >
-                      ...
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className="px-2 py-0.5 rounded text-xs font-bold uppercase"
+                          style={{
+                            backgroundColor: isBuy
+                              ? "hsl(var(--success) / 0.2)"
+                              : "hsl(var(--destructive) / 0.2)",
+                            color: isBuy
+                              ? "hsl(var(--success))"
+                              : "hsl(var(--destructive))",
+                          }}
+                        >
+                          {sig.type}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {new Date(sig.createdAt ?? Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-foreground">{sig.symbol}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-muted-foreground font-mono">
+                          ${parseFloat(sig.price).toLocaleString()}
+                        </span>
+                        <span className="text-xs font-semibold" style={{ color: sig.aiScore > 80 ? "hsl(var(--success))" : "hsl(var(--warning))" }}>
+                          AI {sig.aiScore}
+                        </span>
+                      </div>
                     </div>
                   );
                 })
